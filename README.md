@@ -94,7 +94,7 @@ Walk-forward, no peeking:
 
 - Training window: 24 months for cointegration discovery and OU calibration
 - Trading window: next 6 months, out-of-sample only
-- Rolled monthly with refresh of pair universe and parameters
+- Rolled every 6 months with refresh of pair universe and parameters
 
 No pair is ever traded in the same window it was selected on.
 

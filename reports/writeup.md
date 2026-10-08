@@ -14,7 +14,7 @@ The longer version is more interesting.
 
 I chose the ASX because the market has structural features that should, in theory, favour pairs trading. The big four banks move as a near-bloc, driven by the same macro inputs: housing credit, RBA rates, net interest margins. BHP, RIO, and FMG are tethered to the same iron ore price. REITs cluster tightly on rate sensitivity. If cointegration exists anywhere in equities, it should show up here.
 
-The methodology is textbook. Engle-Granger cointegration with Benjamini-Hochberg correction for multiple testing. Ornstein-Uhlenbeck spread modelling. Z-score signals at +/-2 entry, +/-0.5 exit. Walk-forward design: 24-month training, 6-month trading, rolled monthly. No pair is ever traded in the window it was selected on. Full details are in the [README](../README.md).
+The methodology is textbook. Engle-Granger cointegration with Benjamini-Hochberg correction for multiple testing. Ornstein-Uhlenbeck spread modelling. Z-score signals at +/-2 entry, +/-0.5 exit. Walk-forward design: 24-month training, 6-month trading, rolled every 6 months. No pair is ever traded in the window it was selected on. Full details are in the [README](../README.md).
 
 ---
 
