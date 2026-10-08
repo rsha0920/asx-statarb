@@ -2,6 +2,29 @@
 
 A research project on cointegration-based pairs trading in Australian equities. The methodology is textbook (Engle-Granger pair selection, Ornstein-Uhlenbeck spread modelling, walk-forward out-of-sample testing). The contribution is applying it carefully to a market that's underrepresented in retail quant projects, and being explicit about where the strategy works, where it fails, and what would inflate the results if I weren't paying attention.
 
+**Short answer: the screen finds real cointegration, but the strategy is not tradable net of costs.** The full writeup is in [reports/writeup.md](reports/writeup.md).
+
+## Results
+
+Walk-forward out-of-sample, January 2014 to April 2026 (training data from 2012). 25 six-month trading windows, 447 trades, $1M notional, 45 ASX large-caps.
+
+![Summary of walk-forward results](reports/figures/linkedin_summary.png)
+
+| | Base (10bps per side) | Stress (25bps per side) |
+|---|---|---|
+| Sharpe | 0.14 | 0.01 |
+| Net PnL | $236k | $19k |
+| Share of ~$380k gross PnL lost to costs | 38% | 95% |
+
+- **Sharpe fell after 2016.** 2014 to 2016 averaged 1.30, with 2016 at 2.10. 2017 dropped to -1.54 and the strategy has alternated between positive and negative years since. A regression of annual Sharpe on year gives a slope of -0.11 per year (t = -1.25, p = 0.24). The direction is clear but it isn't statistically significant on 12 observations, and I'm not going to pretend otherwise.
+- **Costs eat the edge.** At 25bps per side, 95% of gross PnL goes to costs. Even at 10bps a Sharpe of 0.14 isn't worth running. The strategy only works with institutional execution, and at that point you'd want intraday data anyway.
+- **Placebo test: 0 of 50.** Shuffling returns and re-running the full screen (BH, half-life, Hurst) on 2018 to 2020 data produced zero surviving pairs in all 50 shuffles, against 3 on real data (empirical p < 0.02). The relationships are real. They just aren't profitable after costs.
+- **Time stops are expensive.** 55% of trades exited on mean reversion, 31% on the 2x half-life time stop, 3% on the hard stop. The time-stopped trades paid full round-trip costs for no convergence.
+- **Tradeable pairs dried up.** Pairs passing all filters fell from 16 to 27 per window in 2014 and 2015 to eight or fewer in every window from 2017 to 2024, including zero in H1 2024. They came back to 10 to 14 in 2025, which is also the year Sharpe recovered to 1.50.
+- **Capacity is small.** At 1% of ADV the median pair supports about $254k, and the tightest about $135k. This doesn't scale.
+
+Verdict: not tradable net of costs.
+
 ## Research questions
 
 1. Are there genuine cointegrating relationships among large-cap ASX names that survive out-of-sample testing once multiple-testing correction is applied?
@@ -28,7 +51,7 @@ Daily OHLCV from yfinance, January 2010 to present. yfinance handles splits but 
 
 ### Universe
 
-~50 large-cap names grouped by GICS sector. Sectors covered: Financials, Insurance, Materials (iron ore, gold, diversified), REITs, Energy, Healthcare, Consumer Staples, Telecom. Constituents are listed in `src/data.py`.
+45 large-cap names grouped by GICS sector. Sectors covered: Financials, Insurance, Materials (iron ore, gold, diversified), REITs, Energy, Healthcare, Consumer Staples, Telecom. Constituents are listed in `src/data.py`.
 
 I am deliberately not using the full ASX 200. Pairs trading benefits from same-sector pair candidates, and a wider universe mostly adds multiple-testing burden without finding new economic relationships.
 
@@ -96,41 +119,42 @@ This section exists because most student backtest projects don't have one, and t
 
 **Look-ahead bias in costs.** Spread costs are modelled as a flat per-side rate rather than from observed quotes. For a project at this fidelity that's reasonable; for a real strategy you'd want LOB-level cost modelling.
 
-**Capacity.** Pairs trading capacity is bounded by the smaller of the two stocks' average daily volume. For ASX small-mid caps in the universe, this is genuinely tight. The capacity analysis section in `reports/` works through this rather than assuming the strategy scales.
+**Capacity.** Pairs trading capacity is bounded by the smaller of the two stocks' average daily volume. For ASX small-mid caps in the universe, this is genuinely tight. `reports/figures/capacity_analysis.png` works through this rather than assuming the strategy scales: median pair capacity is about $254k at 1% of ADV.
 
-**Regime changes and alpha decay.** I'm specifically looking for whether Sharpe has degraded in the post-2015 period. The hypothesis going in is that ETF flows have compressed within-sector dispersion and made cointegration relationships more fragile. Whether that shows up empirically is one of the main outputs of this project.
+**Regime changes and alpha decay.** The hypothesis going in was that ETF flows have compressed within-sector dispersion and made cointegration relationships more fragile. Sharpe did fall after 2016, but the decay regression isn't significant (p = 0.24), so the ETF story is a plausible explanation rather than a demonstrated one.
 
 ## Repository structure
 
 ```
 asx-statarb/
 ├── README.md                  # This file
-├── CLAUDE.md                  # Working plan and conventions for development
 ├── requirements.txt
 ├── src/
 │   ├── data.py                # Universe, fetch, QC
-│   ├── cointegration.py       # Engle-Granger, ADF, BH correction
+│   ├── cointegration.py       # Engle-Granger, ADF, BH correction, pair screen
+│   ├── filters.py             # Hurst exponent (DFA)
 │   ├── ou_process.py          # OU calibration, half-life
 │   ├── signals.py             # Z-score signals, entry/exit logic
+│   ├── sizing.py              # Hedge-ratio legs, inverse-vol allocation
 │   ├── backtest.py            # Walk-forward engine
 │   ├── costs.py               # Cost models
-│   └── analysis.py            # Performance metrics, decay study
-├── notebooks/                 # Exploratory notebooks per phase
+│   └── analysis.py            # Decay regression, placebo test, capacity
+├── notebooks/                 # One notebook per phase (02 to 05), outputs included
+├── scripts/                   # Summary figure generation
 ├── data/                      # Cached parquet (gitignored)
-├── reports/                   # Final writeup, figures, tables
-└── tests/
+├── reports/                   # Writeup and figures
+└── tests/                     # pytest suite
 ```
-
-## Status
-
-Phase 1 of 5: Foundation. Data acquisition module is functional. Universe defined. QC scaffolding in place.
 
 ## How to run
 
 ```bash
 pip install -r requirements.txt
 python -m src.data  # Downloads universe, runs QC, caches to data/
+pytest tests/
 ```
+
+Then run `notebooks/04_backtest.ipynb` for the walk-forward backtest and `notebooks/05_analysis.ipynb` for the decay, placebo and capacity analysis. Results are cached to `data/results/`.
 
 ## References
 

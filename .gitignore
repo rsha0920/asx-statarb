@@ -31,3 +31,9 @@ venv/
 .idea/
 .vscode/
 *.swp
+
+# Local dev notes and editor history (not part of the project)
+CLAUDE.md
+.claude/
+.Rhistory
+**/.Rhistory
