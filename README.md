@@ -107,7 +107,7 @@ Two scenarios:
 
 I am not modelling queue position or market impact at this stage. This is a known limitation, called out below.
 
-## Honest limitations
+## Limitations
 
 This section exists because most student backtest projects don't have one, and that's why most of them shouldn't be trusted. Here's what would make this project look better than it is, and how I've tried to avoid it.
 
